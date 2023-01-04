@@ -3,7 +3,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.liquibase</groupId>
+    <groupId>phyworks.liquibase</groupId>
     <artifactId>liquibase</artifactId>
     <version>0-SNAPSHOT</version>
     <packaging>pom</packaging>
@@ -83,14 +83,6 @@
 
     <modules>
         <module>liquibase-core</module>
-        <module>liquibase-cli</module>
-        <module>liquibase-maven-plugin</module>
-        <module>liquibase-cdi</module>
-        <module>liquibase-integration-tests</module>
-        <module>liquibase-dist</module>
-        <module>liquibase-extension-examples</module>
-        <module>liquibase-extension-testing</module>
-        <module>liquibase-snowflake</module>
     </modules>
 
     <dependencies>
