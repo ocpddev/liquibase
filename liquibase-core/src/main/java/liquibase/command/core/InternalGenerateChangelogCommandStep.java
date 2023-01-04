@@ -16,23 +16,21 @@ import liquibase.util.StringUtil;
 
 import java.io.PrintStream;
 
+@SuppressWarnings("all") // third-party code
 public class InternalGenerateChangelogCommandStep extends InternalDiffChangelogCommandStep {
 
     public static final String[] COMMAND_NAME = {"internalGenerateChangelog"};
 
     private static final String INFO_MESSAGE =
             "BEST PRACTICE: When generating formatted SQL changelogs, always check if the 'splitStatements' attribute" + System.lineSeparator() +
-            "works for your environment. See https://docs.liquibase.com/commands/generatechangelog.html for more information. ";
+                    "works for your environment. See https://docs.liquibase.com/commands/generatechangelog.html for more information. ";
 
-    public static final CommandArgumentDefinition<String> AUTHOR_ARG;
-    public static final CommandArgumentDefinition<String> CONTEXT_ARG;
     public static final CommandArgumentDefinition<Boolean> OVERWRITE_OUTPUT_FILE_ARG;
 
     static {
         final CommandBuilder builder = new CommandBuilder(COMMAND_NAME);
 
-        AUTHOR_ARG = builder.argument("author", String.class).build();
-        CONTEXT_ARG = builder.argument("context", String.class).build();
+        // PATCH: Removed AUTHOR_ARG and CONTEXT_ARG because we lift it up to superclass.
         OVERWRITE_OUTPUT_FILE_ARG = builder.argument("overwriteOutputFile", Boolean.class)
                 .description("Flag to allow overwriting of output changelog file").build();
 
@@ -40,7 +38,7 @@ public class InternalGenerateChangelogCommandStep extends InternalDiffChangelogC
 
     @Override
     public String[][] defineCommandNames() {
-        return new String[][] { COMMAND_NAME };
+        return new String[][]{COMMAND_NAME};
     }
 
     @Override

@@ -4,10 +4,9 @@ import liquibase.CatalogAndSchema;
 import liquibase.GlobalConfiguration;
 import liquibase.Scope;
 import liquibase.command.CommandScope;
-import liquibase.command.core.InternalDiffCommandStep;
 import liquibase.command.core.InternalDiffChangelogCommandStep;
+import liquibase.command.core.InternalDiffCommandStep;
 import liquibase.command.core.InternalGenerateChangelogCommandStep;
-import liquibase.configuration.ConfiguredValue;
 import liquibase.database.Database;
 import liquibase.database.DatabaseFactory;
 import liquibase.database.core.DatabaseUtils;
@@ -36,8 +35,9 @@ import static java.util.ResourceBundle.getBundle;
  *
  * @author Peter Murray
  */
+@SuppressWarnings("all") // third-party code
 public class CommandLineUtils {
-    private static ResourceBundle coreBundle = getBundle("liquibase/i18n/liquibase-core");
+    private static final ResourceBundle coreBundle = getBundle("liquibase/i18n/liquibase-core");
 
     /**
      * @deprecated Use ResourceAccessor version
@@ -97,17 +97,6 @@ public class CommandLineUtils {
                 if ((defaultSchemaName != null) && (defaultCatalogName == null)) {
                     defaultCatalogName = defaultSchemaName;
                 }
-                //
-                // Get values from the configuration object if they aren't already set
-                //
-                if (liquibaseCatalogName == null) {
-                    ConfiguredValue<String> configuredValue  = GlobalConfiguration.LIQUIBASE_CATALOG_NAME.getCurrentConfiguredValue();
-                    liquibaseCatalogName = configuredValue.getValue();
-                }
-                if (liquibaseSchemaName == null) {
-                    ConfiguredValue<String> configuredValue  = GlobalConfiguration.LIQUIBASE_SCHEMA_NAME.getCurrentConfiguredValue();
-                    liquibaseSchemaName = configuredValue.getValue();
-                }
                 if ((liquibaseSchemaName != null) && (liquibaseCatalogName == null)) {
                     liquibaseCatalogName = liquibaseSchemaName;
                 }
@@ -156,7 +145,7 @@ public class CommandLineUtils {
     }
 
     public static CommandScope createDiffCommand(Database referenceDatabase, Database targetDatabase, String snapshotTypes,
-                                                CompareControl.SchemaComparison[] schemaComparisons, ObjectChangeFilter objectChangeFilter, PrintStream output) throws CommandExecutionException {
+                                                 CompareControl.SchemaComparison[] schemaComparisons, ObjectChangeFilter objectChangeFilter, PrintStream output) throws CommandExecutionException {
         CommandScope diffCommand = new CommandScope("internalDiff");
 
         diffCommand
@@ -188,17 +177,22 @@ public class CommandLineUtils {
     public static void doDiffToChangeLog(String changeLogFile,
                                          Database referenceDatabase,
                                          Database targetDatabase,
+                                         String author,
+                                         String context,
                                          DiffOutputControl diffOutputControl,
                                          ObjectChangeFilter objectChangeFilter,
                                          String snapshotTypes)
             throws LiquibaseException, IOException, ParserConfigurationException {
-        doDiffToChangeLog(changeLogFile, referenceDatabase, targetDatabase, diffOutputControl, objectChangeFilter,
+        doDiffToChangeLog(changeLogFile, referenceDatabase, targetDatabase, author, context, diffOutputControl, objectChangeFilter,
                 snapshotTypes, null);
     }
 
     public static void doDiffToChangeLog(String changeLogFile,
                                          Database referenceDatabase,
                                          Database targetDatabase,
+                                         // PATCH: Added author and context as argument
+                                         String author,
+                                         String context,
                                          DiffOutputControl diffOutputControl,
                                          ObjectChangeFilter objectChangeFilter,
                                          String snapshotTypes,
@@ -209,6 +203,9 @@ public class CommandLineUtils {
         command
                 .addArgumentValue(InternalDiffChangelogCommandStep.REFERENCE_DATABASE_ARG, referenceDatabase)
                 .addArgumentValue(InternalDiffChangelogCommandStep.TARGET_DATABASE_ARG, targetDatabase)
+                // PATCH: Pass the author and context into internal step
+                .addArgumentValue(InternalDiffChangelogCommandStep.AUTHOR_ARG, author)
+                .addArgumentValue(InternalDiffChangelogCommandStep.CONTEXT_ARG, context)
                 .addArgumentValue(InternalDiffChangelogCommandStep.SNAPSHOT_TYPES_ARG, InternalDiffChangelogCommandStep.parseSnapshotTypes(snapshotTypes))
                 .addArgumentValue(InternalDiffChangelogCommandStep.COMPARE_CONTROL_ARG, new CompareControl(schemaComparisons, snapshotTypes))
                 .addArgumentValue(InternalDiffChangelogCommandStep.OBJECT_CHANGE_FILTER_ARG, objectChangeFilter)
@@ -277,7 +274,7 @@ public class CommandLineUtils {
         Calendar calendar = Calendar.getInstance();
         SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
 
-        myVersion = LiquibaseUtil.getBuildVersionInfo();
+        myVersion = LiquibaseUtil.getBuildVersion();
         buildTimeString = LiquibaseUtil.getBuildTime();
 
         StringBuilder banner = new StringBuilder();

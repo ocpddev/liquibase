@@ -20,7 +20,10 @@ import liquibase.exception.*;
 import liquibase.hub.HubConfiguration;
 import liquibase.hub.HubServiceFactory;
 import liquibase.integration.IntegrationDetails;
-import liquibase.license.*;
+import liquibase.license.LicenseInstallResult;
+import liquibase.license.LicenseService;
+import liquibase.license.LicenseServiceFactory;
+import liquibase.license.Location;
 import liquibase.lockservice.LockService;
 import liquibase.lockservice.LockServiceFactory;
 import liquibase.logging.LogService;
@@ -28,7 +31,10 @@ import liquibase.logging.Logger;
 import liquibase.logging.core.JavaLogService;
 import liquibase.resource.*;
 import liquibase.ui.ConsoleUIService;
-import liquibase.util.*;
+import liquibase.util.ISODateFormat;
+import liquibase.util.LiquibaseUtil;
+import liquibase.util.StringUtil;
+import liquibase.util.SystemUtil;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -52,6 +58,7 @@ import static java.util.ResourceBundle.getBundle;
  *
  * @deprecated use liquibase.integration.commandline.LiquibaseCommandLine.
  */
+@SuppressWarnings("all") // third-party code
 public class Main {
 
     //set by new CLI to signify it is handling some of the configuration
@@ -64,7 +71,7 @@ public class Main {
 
     private static final String ERRORMSG_UNEXPECTED_PARAMETERS = "unexpected.command.parameters";
     private static final Logger LOG = Scope.getCurrentScope().getLog(Main.class);
-    private static ResourceBundle coreBundle = getBundle("liquibase/i18n/liquibase-core");
+    private static final ResourceBundle coreBundle = getBundle("liquibase/i18n/liquibase-core");
 
     protected ClassLoader classLoader;
     protected String driver;
@@ -128,14 +135,14 @@ public class Main {
     private boolean liquibaseProLicenseValid = false;
     protected String liquibaseHubApiKey;
     protected String liquibaseHubUrl;
-    private Boolean managingLogConfig = null;
-    private boolean outputsLogMessages = false;
+    private final Boolean managingLogConfig = null;
+    private final boolean outputsLogMessages = false;
     protected String sqlFile;
     protected String delimiter;
     protected String rollbackScript;
     protected Boolean rollbackOnError = false;
 
-    private static int[] suspiciousCodePoints = {160, 225, 226, 227, 228, 229, 230, 198, 200, 201, 202, 203,
+    private static final int[] suspiciousCodePoints = {160, 225, 226, 227, 228, 229, 230, 198, 200, 201, 202, 203,
             204, 205, 206, 207, 209, 210, 211, 212, 213, 214, 217, 218, 219,
             220, 222, 223, 232, 233, 234, 235, 236, 237, 238, 239, 241,
             249, 250, 251, 252, 255, 284, 332, 333, 334, 335, 336, 337, 359,
@@ -227,7 +234,7 @@ public class Main {
                         main.command = "";
                         main.parseDefaultPropertyFiles();
                         Scope.getCurrentScope().getUI().sendMessage(CommandLineUtils.getBanner());
-                        Scope.getCurrentScope().getUI().sendMessage(String.format(coreBundle.getString("version.number"), LiquibaseUtil.getBuildVersionInfo()));
+                        Scope.getCurrentScope().getUI().sendMessage(String.format(coreBundle.getString("version.number"), LiquibaseUtil.getBuildVersion()));
 
                         LicenseService licenseService = Scope.getCurrentScope().getSingleton(LicenseServiceFactory.class).getLicenseService();
                         if (licenseService != null && main.liquibaseProLicenseKey != null) {
@@ -1075,7 +1082,7 @@ public class Main {
                 entryValue = String.valueOf(entry.getValue());
             }
             if (integrationDetails != null) {
-                integrationDetails.setParameter("defaultsFile__" + String.valueOf(entry.getKey()), entryValue);
+                integrationDetails.setParameter("defaultsFile__" + entry.getKey(), entryValue);
             }
 
             try {
@@ -1280,7 +1287,7 @@ public class Main {
             return;
         }
 
-        if (arg.toLowerCase().equals("--" + OPTIONS.FORCE) || arg.toLowerCase().equals("--" + OPTIONS.HELP)) {
+        if (arg.equalsIgnoreCase("--" + OPTIONS.FORCE) || arg.equalsIgnoreCase("--" + OPTIONS.HELP)) {
             arg = arg + "=true";
         }
 
@@ -1565,6 +1572,7 @@ public class Main {
                 CommandLineUtils.doDiffToChangeLog(changeLogFile,
                         createReferenceDatabaseFromCommandParams(commandParams, fileOpener),
                         database,
+                        changeSetAuthor, changeSetContext,
                         diffOutputControl, objectChangeFilter, StringUtil.trimToNull(diffTypes), finalSchemaComparisons
                 );
                 return;
@@ -1787,24 +1795,23 @@ public class Main {
                 dropAllCommand.execute();
                 return;
             } else if (COMMANDS.STATUS.equalsIgnoreCase(command)) {
-                boolean runVerbose = false;
+                boolean runVerbose = commandParams.contains("--" + OPTIONS.VERBOSE);
 
-                if (commandParams.contains("--" + OPTIONS.VERBOSE)) {
-                    runVerbose = true;
-                }
                 liquibase.reportStatus(runVerbose, new Contexts(contexts), new LabelExpression(getLabelFilter()),
                         getOutputWriter());
                 return;
             } else if (COMMANDS.UNEXPECTED_CHANGESETS.equalsIgnoreCase(command)) {
-                boolean runVerbose = false;
+                boolean runVerbose = commandParams.contains("--" + OPTIONS.VERBOSE);
 
-                if (commandParams.contains("--" + OPTIONS.VERBOSE)) {
-                    runVerbose = true;
-                }
                 liquibase.reportUnexpectedChangeSets(runVerbose, contexts, getOutputWriter());
                 return;
             } else if (COMMANDS.VALIDATE.equalsIgnoreCase(command)) {
-                liquibase.validate();
+                try {
+                    liquibase.validate();
+                } catch (ValidationFailedException e) {
+                    e.printDescriptiveError(System.err);
+                    return;
+                }
                 Scope.getCurrentScope().getUI().sendMessage(coreBundle.getString("no.validation.errors.found"));
                 return;
             } else if (COMMANDS.CLEAR_CHECKSUMS.equalsIgnoreCase(command)) {
@@ -1988,7 +1995,7 @@ public class Main {
                 }
             } catch (DatabaseException e) {
                 Scope.getCurrentScope().getLog(getClass()).warning(
-                    coreBundle.getString("problem.closing.connection"), e);
+                        coreBundle.getString("problem.closing.connection"), e);
             }
         }
     }
