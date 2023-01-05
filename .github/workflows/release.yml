@@ -16,8 +16,13 @@ jobs:
           server-id: ossrh
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
+          gpg-private-key: ${{ secrets.OCPD_SIGN_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
       - name: Publish package
-        run: mvn clean deploy -DskipTests=true
         env:
           MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.OCPD_SIGN_PASSPHRASE }}
+        run: |
+          mvn versions:set -DnewVersion=4.18.0-b${{ github.run_number }}
+          mvn --no-transfer-progress --batch-mode -DskipTests=true clean deploy
