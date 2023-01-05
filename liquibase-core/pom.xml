@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>phyworks.liquibase</groupId>
+        <groupId>dev.ocpd.liquibase</groupId>
         <artifactId>liquibase</artifactId>
         <version>0-SNAPSHOT</version>
     </parent>
@@ -277,19 +277,19 @@
                 </executions>
             </plugin>
 
-            <plugin>
-                <!-- liquibase-core jar is actually the one from liquibase-dist. So don't install just this sub-module -->
-                <artifactId>maven-install-plugin</artifactId>
-                <configuration>
-                    <skip>true</skip>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>default-install</id>
-                        <phase>none</phase>
-                    </execution>
-                </executions>
-            </plugin>
+<!--            <plugin>-->
+<!--                &lt;!&ndash; liquibase-core jar is actually the one from liquibase-dist. So don't install just this sub-module &ndash;&gt;-->
+<!--                <artifactId>maven-install-plugin</artifactId>-->
+<!--                <configuration>-->
+<!--                    <skip>true</skip>-->
+<!--                </configuration>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>default-install</id>-->
+<!--                        <phase>none</phase>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
 
         </plugins>
     </build>
